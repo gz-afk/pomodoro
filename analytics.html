@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Analytics</title>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="grid"></div>
+<div class="ring" style="width:250px;height:250px;"></div>
+
+<div class="panel" style="top:50%; left:50%; transform:translate(-50%,-50%); width:450px;">
+
+<h3>ANALYTICS</h3>
+
+<button onclick="toggleGraph()">Toggle Graph</button>
+
+<canvas id="chart" width="400" height="220"></canvas>
+
+<div id="summary"></div>
+
+<br>
+<a href="index.html">← Back</a>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("data")) || {};
+
+let canvas = document.getElementById("chart");
+let ctx = canvas.getContext("2d");
+
+let keys = Object.keys(data);
+let values = keys.map(k => data[k].total);
+
+let mode = "line";
+
+function drawChart(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let max = Math.max(...values, 5);
+
+    if(mode==="line"){
+        ctx.beginPath();
+        values.forEach((v,i)=>{
+            let x = i*50 + 20;
+            let y = 200 - (v/max)*150;
+            ctx.lineTo(x,y);
+            ctx.arc(x,y,3,0,Math.PI*2);
+        });
+        ctx.strokeStyle = "#00ffff";
+        ctx.stroke();
+    }
+
+    if(mode==="bar"){
+        values.forEach((v,i)=>{
+            let x = i*50 + 20;
+            let h = (v/max)*150;
+            ctx.fillStyle = "#00ffff";
+            ctx.fillRect(x, 200-h, 25, h);
+        });
+    }
+}
+
+function calculateStreak(){
+    let dates = Object.keys(data).sort();
+    let streak = 0;
+
+    for(let i = dates.length-1; i>=0; i--){
+        let today = new Date();
+        let d = new Date(dates[i]);
+        let diff = (today-d)/(1000*60*60*24);
+
+        if(Math.floor(diff)===streak) streak++;
+        else break;
+    }
+    return streak;
+}
+
+function subjectStats(){
+    let totals = {};
+    Object.values(data).forEach(day=>{
+        for(let sub in day.subjects){
+            totals[sub]=(totals[sub]||0)+day.subjects[sub];
+        }
+    });
+    return totals;
+}
+
+drawChart();
+
+let total = values.reduce((a,b)=>a+b,0);
+let streak = calculateStreak();
+let subjects = subjectStats();
+
+document.getElementById("summary").innerHTML =
+`Total Sessions: ${total}<br>
+🔥 Streak: ${streak} days<br><br>
+${Object.entries(subjects).map(([k,v])=>k+": "+v).join("<br>")}`;
+
+function toggleGraph(){
+    mode = mode==="line"?"bar":"line";
+    drawChart();
+}
+</script>
+
+</body>
+</html>
